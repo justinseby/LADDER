@@ -1,29 +1,30 @@
 # LADDER Ablation Analysis
 
-Three independent ablations, each isolating one design choice in the LADDER pipeline to check whether
-it is actually earning its keep, rather than benchmarking LADDER against outside methods.
+Four independent ablations, each isolating one design choice (or, for Stability Analysis, one source
+of run-to-run randomness) in the LADDER pipeline to check whether it is actually earning its keep,
+rather than benchmarking LADDER against outside methods.
 
 > **Scope:** This README covers the ablation task as a whole. See the per-folder READMEs for the exact
 > files and columns used in each ablation.
 
 ```
-                     LADDER pipeline (Task 1)
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        ▼                     ▼                     ▼
-┌───────────────┐   ┌──────────────────┐   ┌──────────────────┐
-│ Before/After   │   │ Freeform vs      │   │ Masked Analysis  │
-│ Validation     │   │ Scaffolded       │   │                  │
-│ Ablation       │   │                  │   │                  │
-│                │   │                  │   │                  │
-│ Does Stage-3   │   │ Does the         │   │ Is LADDER's edge │
-│ literature     │   │ scaffolded,      │   │ over baselines a │
-│ validation     │   │ multi-step       │   │ real semantic    │
-│ improve on the │   │ prompt beat a    │   │ match, or does   │
-│ pre-validation │   │ single freeform  │   │ it just win by   │
-│ pick?          │   │ prose prompt?    │   │ naming the       │
-│                │   │                  │   │ disease?         │
-└───────────────┘   └──────────────────┘   └──────────────────┘
+                                   LADDER pipeline (Task 1)
+                                             │
+        ┌───────────────────┬─────────────────────┬───────────────────┐
+        ▼                   ▼                     ▼                   ▼
+┌───────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│ Before/After   │  │ Freeform vs      │  │ Masked Analysis  │  │ Stability        │
+│ Validation     │  │ Scaffolded       │  │                  │  │ Analysis         │
+│ Ablation       │  │                  │  │                  │  │                  │
+│                │  │                  │  │                  │  │                  │
+│ Does Stage-3   │  │ Does the         │  │ Is LADDER's edge │  │ Does the same    │
+│ literature     │  │ scaffolded,      │  │ over baselines a │  │ gene set get the │
+│ validation     │  │ multi-step       │  │ real semantic    │  │ same annotation  │
+│ improve on the │  │ prompt beat a    │  │ match, or does   │  │ and confidence   │
+│ pre-validation │  │ single freeform  │  │ it just win by   │  │ run after run,   │
+│ pick?          │  │ prose prompt?    │  │ naming the       │  │ or is it noisy?  │
+│                │  │                  │  │ disease?         │  │                  │
+└───────────────┘  └──────────────────┘  └──────────────────┘  └──────────────────┘
 ```
 
 ---
@@ -75,3 +76,39 @@ semantic similarity trivially just by repeating it.
 2. Merges with MSigDB descriptions and reruns the same embedding-similarity comparison against Hu and
    GeneAgent used in Task 2, to see whether LADDER still wins with the disease name masked out.
 3. R visualization renders the masked-vs-baseline win counts.
+
+### Stability Analysis
+
+Tests reproducibility: does the same gene set get the same annotation and confidence score if the
+pipeline is run again, or does the LLM's inherent run-to-run variance make the output unreliable? Unlike
+the other three, this isolates randomness rather than a specific design choice.
+
+1. `Stability_Analysis.ipynb` re-runs the full annotation + validation pipeline
+   50 times on one fixed, held-out gene set (a single ~70-gene community), calling the DeepSeek API
+   fresh each run with the same prompt scaffold used elsewhere in the project. Each run's
+   `Process_With_Enrichment`, `Process_Without_Enrichment`, and post-validation `Final_Process` /
+   `Final_Confidence` are collected into `Pathway_Annotation_50Runs.csv`.
+2. `R_Visualization.ipynb` reads both 50-run tables and reports two things per track (with-enrichment,
+   without-enrichment, post-validation):
+   - **Label stability** — how many unique process-name variants appeared across the 50 runs, and what
+     share of runs agreed on the majority (plurality) label.
+   - **Confidence stability** — mean, SD, and coefficient of variation (CV%) of the confidence score
+     across the 50 runs.
+
+---
+
+## 2. Requirements
+
+- Python 3.9+ and Jupyter
+- `pandas`, `numpy`, `torch`, `transformers` (BioLORD-2023, MedCPT), `scikit-learn`, `gseapy`, `tqdm`,
+  `requests`
+- An LLM API key (DeepSeek) for the Freeform Prompt Annotation step and for Stability Analysis's 50
+  repeated annotation + validation runs
+- R 4.x with `ggplot2`, `dplyr`, `tidyr`, `patchwork`, `ggdist`, `scales`
+
+```bash
+pip install pandas numpy torch transformers scikit-learn gseapy tqdm requests jupyter
+export DEEPSEEK_API_KEY="your_key_here"
+```
+
+---
