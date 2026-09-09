@@ -15,7 +15,7 @@ pipeline generalizes beyond its original AML/Breast Cancer/Lung Cancer inputs.
 │             │
 │             ▼
 │     Differential expression: TP53-mutant vs wild-type samples
-│     (Mann-Whitney U, log2FC)  →  Up/Down-regulated protein sets
+│     (T-test, log2FC)  →  Up-regulated protein sets
 │             │
 │             ▼
 │     Knowledgebase creation: per-gene PubMed/PMC fetch, query
